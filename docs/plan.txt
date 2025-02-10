@@ -1,0 +1,46 @@
+Objective:
+Design and implement a Python-based automated reporting system that:
+●  Runs every Monday at 6 AM (automatically scheduled).
+●  Extracts the number of students who failed in tests over the last week.
+●  Categorizes failures by:
+    ○  Standard (grade level)
+    ○  Subject
+    ○  Comparison with the student’s previous test’s percentage (to track  improvement/decline)
+●  Generates a summary using an LLM.
+●  Sends the report via email.
+
+
+- Extract the data from database
+- Aggregate
+- llm_summary
+
+challenges
+    - how to connect to a database from python? - solved
+    - how to schedule a python script - solved
+    - how to send email through script - solved
+
+Evaluation Criteria:
+design
+accuracy
+consistency
+
+
+Analysis:
+Get school wise analysis
+Get Subject wise analysis
+
+# one type or report
+For this School
+    For this Standard
+        For this Subject
+            report
+
+# School level report
+
+# School and standard level report
+
+# School and Subject level report
+
+# Standard adn Subject level report
+
+# School, Standard and Subject level report.

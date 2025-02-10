@@ -1,0 +1,12 @@
+total_failed_students: total number of overall failures
+total_unique_failded_students: total unique failed students
+
+total failues across
+    standard & subject
+    that is for each standard get the total failues across each subject
+
+School
+    standard x subject
+    that is for each school
+        for each standard
+            get the total failures across each subject

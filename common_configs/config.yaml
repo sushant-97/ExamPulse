@@ -1,0 +1,274 @@
+llm_config:
+  report_generation_prompt: |
+    Analyze the following educational data and provide meaningful insights:
+
+    {analysis_data}
+
+    As an experienced educational data analyst, examine this data and provide insights in the following structure:
+
+    <analysis_process>
+    1. Key Metrics Identification
+      - What are the critical performance indicators?
+      - What patterns or trends are emerging?
+      - What anomalies require attention?
+
+    2. Statistical Overview
+      - Relevant calculations and statistical findings
+      - Distribution patterns
+      - Comparative analysis across groups
+
+    3. Insight Generation
+      - Primary observations
+      - Secondary patterns
+      - Correlation identification
+      - Risk areas
+    </analysis_process>
+
+    Generate a report with these focus areas:
+    [Specify 3-5 key areas you want to analyze, e.g.:]
+    1. Performance Distribution
+    2. Risk Assessment
+    3. Growth Analysis
+    4. [Other specific areas of interest]
+
+    For each focus area, provide:
+    - Key findings (data-backed)
+    - Impact assessment
+    - Actionable recommendations
+
+    Format preferences:
+    - Use data visualization suggestions where relevant
+    - Prioritize insights by impact
+    - Include specific metrics and their context
+    - Highlight actionable findings
+
+    Additional requirements:
+    - [Add any specific metrics you want to track]
+    - [Include any particular aspects you want to focus on]
+    - [Specify any comparative analysis needed]
+
+
+  report_generation_prompt_1: |
+    {analysis_data}
+
+    You are an experienced educational data analyst tasked with generating a concise academic performance report based on the analysis data provided above.
+
+    Your goal is to create a comprehensive yet brief report that provides insights into student performance, highlights areas of concern, and offers recommendations for improvement.
+
+    Before composing the final report, please analyze the data thoroughly. Wrap your data breakdown inside <data_breakdown> tags to show your thought process, break down the information, and draw meaningful conclusions. This analysis should cover all aspects requested in the final report. In your breakdown:
+
+    - List out key statistics and numbers from the analysis data.
+    - Identify trends and patterns in the data.
+    - Note any anomalies or surprising findings.
+    - Brainstorm potential recommendations based on the data.
+
+    It's OK for this section to be quite long.
+
+    After your analysis, create a report with the following sections:
+
+    1. Overview of Failures
+    2. Grade-wise Breakdown
+    3. Subject-wise Analysis
+    4. Notable Performance Trends
+    5. Recommendations for Improvement
+    6. Weekly Failure Report Summary
+      a. Overview
+      b. Trends
+      c. Student Insights
+      d. Recommendations
+
+    For each section, provide concise, data-driven insights. Ensure that your report addresses all the following points:
+
+    - Total number of students who failed
+    - Most affected grade
+    - Subject with the highest failure rate
+    - Grades showing improvement
+    - Grades showing decline
+    - Number of students who improved but still failed
+    - Students consistently failing across multiple subjects
+    - Suggested interventions for specific subjects/grades
+
+    Please format your final report using markdown headers for each section and bullet points for key information. Here's an example of the desired structure:
+
+    ```markdown
+    # Academic Performance Report
+
+    ## 1. Overview of Failures
+    - [Key insight 1]
+    - [Key insight 2]
+
+    ## 2. Grade-wise Breakdown
+    - [Grade 1]: [Brief analysis]
+    - [Grade 2]: [Brief analysis]
+    ...
+
+    ## 3. Subject-wise Analysis
+    - [Subject 1]: [Brief analysis]
+    - [Subject 2]: [Brief analysis]
+    ...
+
+    ## 4. Notable Performance Trends
+    - [Trend 1]
+    - [Trend 2]
+    ...
+
+    ## 5. Recommendations for Improvement
+    - [Recommendation 1]
+    - [Recommendation 2]
+    ...
+
+    ## 6. Weekly Failure Report Summary
+
+    ### a. Overview
+    - Total students failed: [number]
+    - Most affected grade: [grade]
+    - Subject with highest failure rate: [subject]
+
+    ### b. Trends
+    - Improving grades: [list]
+    - Declining grades: [list]
+
+    ### c. Student Insights
+    - Students improved but still failed: [number]
+    - Students consistently failing multiple subjects: [number]
+
+    ### d. Recommendations
+    - [Subject/Grade]: [Specific intervention]
+    - [Subject/Grade]: [Specific intervention]
+    ...
+    ```
+
+    Remember to keep your analysis thorough but your final report concise and informative.
+
+  basic_report_prompt: |
+    """
+    Generate a brief & concise academic performance report based on the following data
+    {analysis_data}
+
+    Please include:
+    1. Overview of failures
+    2. Grade-wise breakdown
+    3. Subject-wise analysis
+    4. Notable performance trends
+    5. Recommendations for improvement
+
+    Weekly Failure Report Summary
+
+    1. Overview:
+    - Total number of students who failed
+    - Most affected grade
+    - Subject with the highest failure rate
+
+    2. Trends:
+    - Grades showing improvement
+    - Grades showing decline
+    3. Student Insights:
+    - Number of students who improved but still failed
+    - Students consistently failing across multiple subjects
+
+    4. Recommendations:
+    - Suggested interventions for specific subjects/grades
+    """
+
+queries:
+  total_failures: |
+    SELECT
+      exam_id,
+      COUNT(DISTINCT CASE WHEN marks < 33 THEN student_id END) as failed_students
+    FROM exam_results er
+    WHERE exam_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 WEEK)
+    AND exam_date <= CURRENT_DATE
+    GROUP BY exam_id;
+
+  subject_wise_failures: |
+    SELECT
+      sub.subject_name,
+      COUNT(DISTINCT CASE WHEN er.marks < 33 THEN er.student_id END) as failed_students,
+      COUNT(DISTINCT er.student_id) as total_students,
+      ROUND(
+        COUNT(DISTINCT CASE WHEN er.marks < 33 THEN er.student_id END) * 100.0 /
+        COUNT(DISTINCT er.student_id)
+      , 2) as failure_percentage
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.exam_id
+    JOIN subjects sub ON e.subject_id = sub.subject_id
+    WHERE er.exam_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 WEEK)
+    AND er.exam_date <= CURRENT_DATE
+    GROUP BY sub.subject_id;
+
+  grade_wise_failures: |
+    SELECT
+      s.standard,
+      COUNT(DISTINCT CASE WHEN er.marks < 33 THEN er.student_id END) as failed_students,
+      COUNT(DISTINCT er.student_id) as total_students,
+      ROUND(
+        COUNT(DISTINCT CASE WHEN er.marks < 33 THEN er.student_id END) * 100.0 /
+        COUNT(DISTINCT er.student_id)
+      , 2) as failure_percentage
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.exam_id
+    JOIN subjects sub ON e.subject_id = sub.subject_id
+    JOIN students s ON er.student_id = s.student_id
+    WHERE er.exam_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 WEEK)
+    AND er.exam_date <= CURRENT_DATE
+    GROUP BY s.standard;
+
+  performance_comparison: |
+    WITH CurrentWeekResults AS (
+      SELECT
+        er.student_id,
+        e.subject_id,
+        s.subject_name,
+        std.standard,
+        er.marks as current_marks,
+        er.exam_date
+      FROM exam_results er
+      JOIN exams e ON er.exam_id = e.exam_id
+      JOIN subjects s ON e.subject_id = s.subject_id
+      JOIN students std ON er.student_id = std.student_id
+      WHERE er.exam_date >= DATE_SUB(CURRENT_DATE, INTERVAL 1 WEEK)
+      AND er.exam_date <= CURRENT_DATE
+    ),
+    LastExamResults AS (
+      SELECT
+        er.student_id,
+        e.subject_id,
+        std.standard,
+        er.marks as previous_marks,
+        er.exam_date
+      FROM exam_results er
+      JOIN exams e ON er.exam_id = e.exam_id
+      JOIN students std ON er.student_id = std.student_id
+      WHERE EXISTS (
+        SELECT 1
+        FROM CurrentWeekResults cr
+        WHERE cr.subject_id = e.subject_id
+        AND cr.standard = std.standard
+      )
+      AND er.exam_date < DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH)
+      AND er.exam_date = (
+        SELECT MAX(er2.exam_date)
+        FROM exam_results er2
+        JOIN exams e2 ON er2.exam_id = e2.exam_id
+        JOIN students std2 ON er2.student_id = std2.student_id
+        WHERE e2.subject_id = e.subject_id
+        AND std2.standard = std.standard
+        AND er2.exam_date < DATE_SUB(CURRENT_DATE, INTERVAL 1 MONTH)
+      )
+    )
+    SELECT
+      cr.subject_name,
+      cr.standard,
+      COUNT(DISTINCT cr.student_id) as total_students,
+      ROUND(AVG(cr.current_marks), 2) as avg_current_marks,
+      ROUND(AVG(lr.previous_marks), 2) as avg_previous_marks,
+      ROUND(AVG(cr.current_marks - lr.previous_marks), 2) as avg_change,
+      COUNT(DISTINCT CASE WHEN cr.current_marks > lr.previous_marks THEN cr.student_id END) as improved_count,
+      COUNT(DISTINCT CASE WHEN cr.current_marks < lr.previous_marks THEN cr.student_id END) as declined_count
+    FROM CurrentWeekResults cr
+    LEFT JOIN LastExamResults lr
+      ON cr.student_id = lr.student_id
+      AND cr.subject_id = lr.subject_id
+      AND cr.standard = lr.standard
+    GROUP BY cr.subject_id, cr.standard
+    ORDER BY cr.standard, avg_change DESC;
